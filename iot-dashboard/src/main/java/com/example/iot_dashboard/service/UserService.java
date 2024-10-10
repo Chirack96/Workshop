@@ -4,26 +4,60 @@ import com.example.iot_dashboard.model.Device;
 import com.example.iot_dashboard.model.User;
 import com.example.iot_dashboard.repository.DeviceRepository;
 import com.example.iot_dashboard.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final DeviceRepository deviceRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private DeviceRepository deviceRepository;
+    // Constructor-based injection to avoid circular dependencies
+    public UserService(UserRepository userRepository, DeviceRepository deviceRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.deviceRepository = deviceRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-    // Récupérer tous les utilisateurs avec leurs dispositifs associés
+    // Load user by email (required by Spring Security)
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            throw new UsernameNotFoundException("User not found with email: " + email);
+        }
+        return userOptional.get();  // Ensure the user is returned as a UserDetails object
+    }
+
+
+    // Register a new user
+    public User registerUser(User user) {
+        // Ensure email uniqueness
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        // Encode password before saving
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        return userRepository.save(user);
+    }
+
+
+    // Get all users with their associated devices
     public List<User> getAllUsers() {
         List<User> users = userRepository.findAll();
 
-        // Charger les dispositifs pour chaque utilisateur
+        // Load devices for each user
         for (User user : users) {
             List<Device> devices = deviceRepository.findByUserId(user.getId());
             user.setDevices(devices);
@@ -32,7 +66,7 @@ public class UserService {
         return users;
     }
 
-    // Récupérer un utilisateur par ID avec ses dispositifs associés
+    // Get user by ID with their associated devices
     public User getUserById(String id) {
         Optional<User> userOptional = userRepository.findById(id);
         if (userOptional.isPresent()) {
@@ -44,30 +78,30 @@ public class UserService {
         return null;
     }
 
-    // Créer un utilisateur
+    // Save a user
     public User saveUser(User user) {
         return userRepository.save(user);
     }
 
-    // Mettre à jour un utilisateur
+    // Update a user
     public User updateUser(String id, User user) {
-        user.setId(id);  // S'assurer que l'ID est bien défini
+        user.setId(id);  // Ensure the ID is set
         return userRepository.save(user);
     }
 
-    // Ajouter un nouveau device pour un utilisateur
+    // Add a new device to a user
     public Device addDeviceToUser(String userId, Device device) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             device.setUserId(userId);
-            return deviceRepository.save(device);  // Sauvegarder le device
+            return deviceRepository.save(device);  // Save the device
         } else {
             throw new RuntimeException("User not found");
         }
     }
 
-    // Activer un device pour un utilisateur (désactive les autres)
+    // Activate a device for a user (deactivate others)
     public Device activateDeviceForUser(String userId, String deviceId) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isPresent()) {
@@ -76,20 +110,20 @@ public class UserService {
 
             for (Device device : devices) {
                 if (device.getId().equals(deviceId)) {
-                    device.setActive(true);  // Activer ce device
+                    device.setActive(true);  // Activate this device
                 } else {
-                    device.setActive(false);  // Désactiver les autres
+                    device.setActive(false);  // Deactivate the others
                 }
-                deviceRepository.save(device);  // Mettre à jour chaque device
+                deviceRepository.save(device);  // Update each device
             }
 
-            return deviceRepository.findById(deviceId).orElse(null);  // Retourner le device activé
+            return deviceRepository.findById(deviceId).orElse(null);  // Return the activated device
         } else {
             throw new RuntimeException("User not found");
         }
     }
 
-    // Supprimer un utilisateur
+    // Delete a user
     public void deleteUser(String id) {
         userRepository.deleteById(id);
     }
