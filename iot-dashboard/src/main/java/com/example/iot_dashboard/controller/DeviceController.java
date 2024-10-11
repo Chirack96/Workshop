@@ -7,10 +7,7 @@ import com.example.iot_dashboard.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -54,7 +51,14 @@ public class DeviceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDevice(@PathVariable String id) {
         deviceService.deleteDevice(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
+    }
+
+    // Get Daily Device Data
+    @GetMapping("/{deviceId}/data/daily")
+    public ResponseEntity<List<DeviceData>> getDailyDeviceData(@PathVariable String deviceId) {
+        List<DeviceData> deviceDataList = deviceDataService.getDailyDeviceData(deviceId);
+        return ResponseEntity.ok(deviceDataList);
     }
 
     // Synchroniser les données d'un dispositif

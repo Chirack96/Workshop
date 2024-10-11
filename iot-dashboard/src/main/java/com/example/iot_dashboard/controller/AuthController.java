@@ -36,6 +36,14 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<User> getUserDetails(@RequestHeader("Authorization") String token) {
+        String actualToken = token.substring(7);  // Remove "Bearer " prefix
+        User user = authService.getUserFromToken(actualToken);  // Assuming authService can get user from token
+        return ResponseEntity.ok(user);
+    }
+
+
 
     @PostMapping("/register")
     public ResponseEntity<User> register(@Valid @RequestBody User user) {

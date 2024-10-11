@@ -4,10 +4,7 @@ import com.example.iot_dashboard.model.DeviceData;
 import com.example.iot_dashboard.repository.DeviceDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -40,4 +37,9 @@ public class DeviceDataService {
     }
 
 
+    public List<DeviceData> getDailyDeviceData(String deviceId) {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+        return getDeviceDataByDeviceIdAndDateRange(deviceId, startOfDay, endOfDay);
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.iot_dashboard.model;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -15,8 +16,18 @@ public class Device {
     @Id
     private String id;
 
+    @NotBlank
     private String userId;  // ID de l'utilisateur auquel ce dispositif est associé
+
+    @NotBlank
     private String name;
 
-    private boolean active;  // Indique si ce dispositif est actif ou non
+    @NotBlank
+    private String type;
+
+    private boolean isActive;  // Indique si ce dispositif est actif ou non
+
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
 }

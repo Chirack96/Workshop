@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.security.core.GrantedAuthority;
@@ -11,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +34,7 @@ public class User implements UserDetails {
 
     @Email
     @NotBlank(message = "Email is mandatory")
+    @Indexed(unique = true)  // Ensure email uniqueness
     private String email;
 
     @NotBlank(message = "Password is mandatory")
@@ -43,7 +46,7 @@ public class User implements UserDetails {
 
     // List of devices associated with the user
     @DBRef
-    private List<Device> devices;
+    private List<Device> devices = new ArrayList<>();
 
     // Method to get the active device
     public Device getActiveDevice() {

@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +37,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)  // Disable CSRF
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // Enable CORS
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users/**", "/api/auth/login", "/api/auth/register").permitAll()  // Allow public access to auth endpoints
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()  // Allow public access to auth endpoints
                         .anyRequest().authenticated()  // All other endpoints require authentication
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));  // Stateless session management
@@ -46,15 +47,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    private CorsConfigurationSource corsConfigurationSource() {
-        return request -> {
-            CorsConfiguration cors = new CorsConfiguration();
-            cors.setAllowedOrigins(Collections.singletonList("*"));
-            cors.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-            cors.setAllowedHeaders(List.of("*"));
-            cors.setAllowCredentials(true);
-            return cors;
-        };
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:4200"));  // Allow requests from Angular frontend
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);  // Apply this configuration to all routes
+        return source;
     }
 
     @Bean

@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,6 +81,7 @@ public class UserService implements UserDetailsService {
 
     // Save a user
     public User saveUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -91,40 +93,61 @@ public class UserService implements UserDetailsService {
 
     // Add a new device to a user
     public Device addDeviceToUser(String userId, Device device) {
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            device.setUserId(userId);
-            return deviceRepository.save(device);  // Save the device
-        } else {
-            throw new RuntimeException("User not found");
+        // Récupérer l'utilisateur par son ID
+        User user = getUserById(userId);
+
+        // Si l'utilisateur n'a pas encore de liste de devices, en créer une
+        if (user.getDevices() == null) {
+            user.setDevices(new ArrayList<>());
         }
+
+        // Toujours définir isActive à false lors de la création de l'appareil
+        device.setActive(false);
+
+        // Ajouter le nouvel appareil à la liste de l'utilisateur
+        user.getDevices().add(device);
+
+        // Sauvegarder l'utilisateur avec les nouvelles données
+        saveUser(user);
+
+        return device;
     }
 
+
+
     // Activate a device for a user (deactivate others)
-    public Device activateDeviceForUser(String userId, String deviceId) {
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            List<Device> devices = deviceRepository.findByUserId(userId);
+    public Device activateDeviceForUser(String userId, String deviceId, boolean isActive) {
+        // Rechercher l'appareil correspondant dans la base de données
+        Device device = (Device) deviceRepository.findByIdAndUserId(deviceId, userId)
+                .orElseThrow(() -> new RuntimeException("Appareil non trouvé pour cet utilisateur"));
 
-            for (Device device : devices) {
-                if (device.getId().equals(deviceId)) {
-                    device.setActive(true);  // Activate this device
-                } else {
-                    device.setActive(false);  // Deactivate the others
-                }
-                deviceRepository.save(device);  // Update each device
-            }
+        // Mettre à jour l'état de l'appareil
+        device.setActive(isActive);
 
-            return deviceRepository.findById(deviceId).orElse(null);  // Return the activated device
-        } else {
-            throw new RuntimeException("User not found");
-        }
+        // Enregistrer l'appareil mis à jour dans la base de données
+        return deviceRepository.save(device);
     }
 
     // Delete a user
     public void deleteUser(String id) {
         userRepository.deleteById(id);
+    }
+
+    public List<Device> getUserDevices(String id) {
+        return deviceRepository.findByUserId(id);
+    }
+
+    public Device getActiveDeviceForUser(String id) {
+        Optional<User> userOptional = userRepository.findById(id);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            return user.getActiveDevice();
+        }
+        return null;
+    }
+
+    //delete all users
+    public void deleteAllUsers() {
+        userRepository.deleteAll();
     }
 }
